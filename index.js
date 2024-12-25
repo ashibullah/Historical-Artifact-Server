@@ -47,6 +47,69 @@ async function run() {
       res.send(result)
     })
 
+    app.get("/artifacts/:id", async (req,res)=>{
+      const id = req.params.id;
+      // console.log(id);
+      try{
+        const query = { _id : new ObjectId(id)};
+        const result = await artifactColl.findOne(query);
+        res.send(result)
+      }
+      catch(err){
+        req.status(500).send("cant find Data")
+      }
+    })
+
+    app.patch("/like/:id" , async(req,res)=>{
+      const id = req.params.id;
+      const email = req.body.email;
+      console.log(id , email)
+      try {
+        const query = { _id : new ObjectId(id)};
+        const target = {$addToSet :
+          {
+          likedBy:email
+          }
+      }
+        const result = await artifactColl.updateOne(query , target);
+      
+        if (result.modifiedCount === 0) {
+          return res.status(404).json({ message: 'Product not found or already liked' });
+        }
+    
+        return res.status(200).json({ message: 'Product liked successfully' });
+      }
+      
+      catch(err){
+        return res.status(500).json({ message: 'Server error', error: err });
+      }
+    })
+
+
+    app.patch("/unlike/:id" , async(req,res)=>{
+      const id = req.params.id;
+      const email = req.body.email;
+      try {
+        const query = { _id : new ObjectId(id)};
+        const target = {$pull :
+          {
+          likedBy:email
+          }
+      }
+        const result = await artifactColl.updateOne(query , target);
+      
+        if (result.modifiedCount === 0) {
+          return res.status(404).json({ message: 'Product not found or already liked' });
+        }
+    
+        return res.status(200).json({ message: 'Product unliked successfully' });
+      }
+      
+      catch(err){
+        return res.status(500).json({ message: 'Server error', error: err });
+      }
+    })
+
     app.post("/artifacts/add", async(req ,res) =>{
       const artifact = req.body;
       try{
@@ -56,6 +119,7 @@ async function run() {
       catch{
         res.status(401).send('error to add artifact')
       }
+      
       
 
     })
