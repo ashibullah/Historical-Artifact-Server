@@ -59,6 +59,18 @@ async function run() {
         req.status(500).send("cant find Data")
       }
     })
+    app.get("/artifacts/user/:email" , async (req,res)=>{
+      const email = req.params.email;
+      try{
+        const query = {
+          "addedBy.email" : email
+        }
+        const result = await artifactColl.find(query).toArray()
+        res.send(result);
+      }catch(err){
+        req.status(500).send("cant find Data")
+      }
+    })
 
     app.patch("/like/:id" , async(req,res)=>{
       const id = req.params.id;
@@ -119,9 +131,24 @@ async function run() {
       catch{
         res.status(401).send('error to add artifact')
       }
-      
-      
-
+    
+    })
+      app.put("/update/artifact/:id", async(req ,res) =>{
+      const id = req.params.id;
+      const artifact = req.body;
+      const query = { _id : new ObjectId(id) }
+      const options = { upsert: false };
+      const updateDoc = { $set: artifact };
+      try{
+        const result = await artifactColl.updateOne(query, updateDoc , options);
+        if (result.matchedCount === 0) {
+          return res.status(404).send('Artifact not found');
+        }
+        res.send('Successfully Updated artifact');
+      }
+      catch{
+        res.status(401).send('error to add artifact')
+      }
     })
 
   } finally {
