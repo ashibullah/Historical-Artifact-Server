@@ -42,130 +42,178 @@ async function run() {
 
 
     // Api Starts here 
-    app.get("/artifacts", async (req,res)=>{
+    app.get("/artifacts", async (req, res) => {
       const result = await artifactColl.find().toArray();
       res.send(result)
     })
 
-    app.get("/artifacts/:id", async (req,res)=>{
+    app.get('/artifacts/featured', async (req, res) => {
+      try {
+        const query =[
+
+          {
+            $addFields: {
+              likeCount: { $size: "$likedBy" } // 
+            }
+          },
+          {
+            $limit: 6
+          },
+          {
+            $sort: { likeCount: -1 }
+          }
+        ]
+        const result = await artifactColl.aggregate(query).toArray();
+
+        res.status(200).json(result);
+      } catch (error) {
+        console.error("Error fetching sorted artifacts:", error);
+        res.status(500).json({ message: "Server error", error });
+      }
+    })
+
+
+    app.get("/artifacts/:id", async (req, res) => {
       const id = req.params.id;
       // console.log(id);
-      try{
-        const query = { _id : new ObjectId(id)};
+      try {
+        const query = { _id: new ObjectId(id) };
         const result = await artifactColl.findOne(query);
         res.send(result)
       }
-      catch(err){
+      catch (err) {
         req.status(500).send("cant find Data")
       }
     })
-    app.get("/artifacts/user/:email" , async (req,res)=>{
+    app.get("/artifacts/user/:email", async (req, res) => {
       const email = req.params.email;
-      try{
+      try {
         const query = {
-          "addedBy.email" : email
+          "addedBy.email": email
         }
         const result = await artifactColl.find(query).toArray()
         res.send(result);
-      }catch(err){
+      } catch (err) {
         req.status(500).send("cant find Data")
       }
     })
 
-    
 
-    app.patch("/like/:id" , async(req,res)=>{
+
+    app.patch("/like/:id", async (req, res) => {
       const id = req.params.id;
       const email = req.body.email;
-      console.log(id , email)
+      console.log(id, email)
       try {
-        const query = { _id : new ObjectId(id)};
-        const target = {$addToSet :
+        const query = { _id: new ObjectId(id) };
+        const target = {
+          $addToSet:
           {
-          likedBy:email
+            likedBy: email
           }
-      }
-        const result = await artifactColl.updateOne(query , target);
-      
+        }
+        const result = await artifactColl.updateOne(query, target);
+
         if (result.modifiedCount === 0) {
           return res.status(404).json({ message: 'Product not found or already liked' });
         }
-    
+
         return res.status(200).json({ message: 'Product liked successfully' });
       }
-      
-      catch(err){
+
+      catch (err) {
         return res.status(500).json({ message: 'Server error', error: err });
       }
     })
 
 
-    app.patch("/unlike/:id" , async(req,res)=>{
+    app.patch("/unlike/:id", async (req, res) => {
       const id = req.params.id;
       const email = req.body.email;
       try {
-        const query = { _id : new ObjectId(id)};
-        const target = {$pull :
+        const query = { _id: new ObjectId(id) };
+        const target = {
+          $pull:
           {
-          likedBy:email
+            likedBy: email
           }
-      }
-        const result = await artifactColl.updateOne(query , target);
-      
+        }
+        const result = await artifactColl.updateOne(query, target);
+
         if (result.modifiedCount === 0) {
           return res.status(404).json({ message: 'Product not found or already liked' });
         }
-    
+
         return res.status(200).json({ message: 'Product unliked successfully' });
       }
-      
-      catch(err){
+
+      catch (err) {
         return res.status(500).json({ message: 'Server error', error: err });
       }
     })
 
-    app.post("/artifacts/add", async(req ,res) =>{
+    app.post("/artifacts/add", async (req, res) => {
       const artifact = req.body;
-      try{
+      try {
         const result = await artifactColl.insertOne(artifact);
         res.send('Successfully added artifact');
       }
-      catch{
+      catch {
         res.status(401).send('error to add artifact')
       }
-    
+
     })
-      app.put("/update/artifact/:id", async(req ,res) =>{
+    app.put("/update/artifact/:id", async (req, res) => {
       const id = req.params.id;
       const artifact = req.body;
-      const query = { _id : new ObjectId(id) }
+      const query = { _id: new ObjectId(id) }
       const options = { upsert: false };
       const updateDoc = { $set: artifact };
-      try{
-        const result = await artifactColl.updateOne(query, updateDoc , options);
+      try {
+        const result = await artifactColl.updateOne(query, updateDoc, options);
         if (result.matchedCount === 0) {
           return res.status(404).send('Artifact not found');
         }
         res.send('Successfully Updated artifact');
       }
-      catch{
+      catch {
         res.status(401).send('error to add artifact')
       }
     })
 
 
-    app.get('/artifacts/likedBy/:email', async (req, res)=>{
+    app.get('/artifacts/likedBy/:email', async (req, res) => {
       const email = req.params.email;
-      const query = {likedBy : email };
-      try{
+      const query = { likedBy: email };
+      try {
 
         const result = await artifactColl.find(query).toArray();
         res.send(result);
-        
-      }catch(err){
+
+      } catch (err) {
         return res.status(500).json({ message: 'Server error', error: err });
       }
     })
+
+    app.delete('/artifacts/delete/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+
+      try {
+        const result = await artifactColl.deleteOne(query);
+
+        if (result.deletedCount === 1) {
+          res.status(200).send("Artifact Deleted")
+        } else {
+          res.status(404).send("Artifact not found");
+        }
+      } catch (error) {
+        console.error("Error deleting artifact:", error);
+        res.status(500).json({ message: "Server error", error });
+      }
+    });
+
+    
 
   } finally {
     // Ensures that the client will close when you finish/error
