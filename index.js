@@ -72,6 +72,8 @@ async function run() {
       }
     })
 
+    
+
     app.patch("/like/:id" , async(req,res)=>{
       const id = req.params.id;
       const email = req.body.email;
@@ -148,6 +150,20 @@ async function run() {
       }
       catch{
         res.status(401).send('error to add artifact')
+      }
+    })
+
+
+    app.get('/artifacts/likedBy/:email', async (req, res)=>{
+      const email = req.params.email;
+      const query = {likedBy : email };
+      try{
+
+        const result = await artifactColl.find(query).toArray();
+        res.send(result);
+        
+      }catch(err){
+        return res.status(500).json({ message: 'Server error', error: err });
       }
     })
 
